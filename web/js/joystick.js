@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js'
+import * as PIXI from 'pixi.js';
 
 const Direction = {
     LEFT: 'left',
@@ -8,22 +8,22 @@ const Direction = {
     TOP_LEFT: 'top_left',
     TOP_RIGHT: 'top_right',
     BOTTOM_LEFT: 'bottom_left',
-    BOTTOM_RIGHT: 'bottom_right'
-}
+    BOTTOM_RIGHT: 'bottom_right',
+};
 
 const DIR_TO_POINT = {
-    'left': new PIXI.Point(-1, 0),
-    'top': new PIXI.Point(0, -1),
-    'bottom': new PIXI.Point(0, 1),
-    'right': new PIXI.Point(1, 0),
+    left: new PIXI.Point(-1, 0),
+    top: new PIXI.Point(0, -1),
+    bottom: new PIXI.Point(0, 1),
+    right: new PIXI.Point(1, 0),
     top_left: new PIXI.Point(-1, -1),
     top_right: new PIXI.Point(1, -1),
     bottom_left: new PIXI.Point(-1, 1),
     bottom_right: new PIXI.Point(1, 1),
-}
+};
 
 export class Joystick extends PIXI.Container {
-    settings = undefined
+    settings = undefined;
 
     outerRadius = 0;
     innerRadius = 0;
@@ -36,15 +36,18 @@ export class Joystick extends PIXI.Container {
     constructor(opts) {
         super();
 
-        this.settings = Object.assign({
-            outerScale: { x: 1, y: 1 },
-            innerScale: { x: 1, y: 1 },
-        }, opts);
+        this.settings = Object.assign(
+            {
+                outerScale: {x: 1, y: 1},
+                innerScale: {x: 1, y: 1},
+            },
+            opts
+        );
 
         if (!this.settings.outer) {
             const outer = new PIXI.Graphics();
             outer.beginFill(0x000000);
-            outer.drawCircle(0, 0, 60);
+            outer.drawCircle(0, 0, 900);
             outer.alpha = 0.5;
             this.settings.outer = outer;
         }
@@ -52,7 +55,7 @@ export class Joystick extends PIXI.Container {
         if (!this.settings.inner) {
             const inner = new PIXI.Graphics();
             inner.beginFill(0x000000);
-            inner.drawCircle(0, 0, 35);
+            inner.drawCircle(0, 0, 900);
             inner.alpha = this.innerAlphaStandby;
             this.settings.inner = inner;
         }
@@ -67,8 +70,12 @@ export class Joystick extends PIXI.Container {
         this.outer.scale.set(this.settings.outerScale.x, this.settings.outerScale.y);
         this.inner.scale.set(this.settings.innerScale.x, this.settings.innerScale.y);
 
-        if ('anchor' in this.outer) { this.outer.anchor.set(0.5); }
-        if ('anchor' in this.inner) { this.inner.anchor.set(0.5); }
+        if ('anchor' in this.outer) {
+            this.outer.anchor.set(0.5);
+        }
+        if ('anchor' in this.inner) {
+            this.inner.anchor.set(0.5);
+        }
 
         this.addChild(this.outer);
         this.addChild(this.inner);
@@ -100,7 +107,9 @@ export class Joystick extends PIXI.Container {
         }
 
         function onDragEnd(event) {
-            if (dragging == false) { return; }
+            if (dragging == false) {
+                return;
+            }
 
             that.inner.position.set(0, 0);
 
@@ -111,7 +120,9 @@ export class Joystick extends PIXI.Container {
         }
 
         function onDragMove(event) {
-            if (dragging == false) { return; }
+            if (dragging == false) {
+                return;
+            }
 
             let newPosition = eventData.getLocalPosition(that);
 
@@ -121,14 +132,15 @@ export class Joystick extends PIXI.Container {
             let centerPoint = new PIXI.Point(0, 0);
             let angle = 0;
 
-            if (sideX == 0 && sideY == 0) { return; }
+            if (sideX == 0 && sideY == 0) {
+                return;
+            }
 
             let calRadius = 0;
 
             if (sideX * sideX + sideY * sideY >= that.outerRadius * that.outerRadius) {
                 calRadius = that.outerRadius;
-            }
-            else {
+            } else {
                 calRadius = that.outerRadius - that.innerRadius;
             }
 
@@ -149,7 +161,7 @@ export class Joystick extends PIXI.Container {
 
             if (sideX == 0) {
                 if (sideY > 0) {
-                    centerPoint.set(0, (sideY > that.outerRadius) ? that.outerRadius : sideY);
+                    centerPoint.set(0, sideY > that.outerRadius ? that.outerRadius : sideY);
                     angle = 270;
                     direction = Direction.BOTTOM;
                 } else {
@@ -159,13 +171,13 @@ export class Joystick extends PIXI.Container {
                 }
                 that.inner.position.set(centerPoint.x, centerPoint.y);
                 power = that.getPower(centerPoint);
-                that.settings.onChange?.({ angle, direction, power, });
+                that.settings.onChange?.({angle, direction, power});
                 return;
             }
 
             if (sideY == 0) {
                 if (sideX > 0) {
-                    centerPoint.set((Math.abs(sideX) > that.outerRadius ? that.outerRadius : Math.abs(sideX)), 0);
+                    centerPoint.set(Math.abs(sideX) > that.outerRadius ? that.outerRadius : Math.abs(sideX), 0);
                     angle = 0;
                     direction = Direction.LEFT;
                 } else {
@@ -176,13 +188,13 @@ export class Joystick extends PIXI.Container {
 
                 that.inner.position.set(centerPoint.x, centerPoint.y);
                 power = that.getPower(centerPoint);
-                that.settings.onChange?.({ angle, direction, power, });
+                that.settings.onChange?.({angle, direction, power});
                 return;
             }
 
             let tanVal = Math.abs(sideY / sideX);
             let radian = Math.atan(tanVal);
-            angle = radian * 180 / Math.PI;
+            angle = (radian * 180) / Math.PI;
 
             let centerX = 0;
             let centerY = 0;
@@ -190,8 +202,7 @@ export class Joystick extends PIXI.Container {
             if (sideX * sideX + sideY * sideY >= that.outerRadius * that.outerRadius) {
                 centerX = that.outerRadius * Math.cos(radian);
                 centerY = that.outerRadius * Math.sin(radian);
-            }
-            else {
+            } else {
                 centerX = Math.abs(sideX) > that.outerRadius ? that.outerRadius : Math.abs(sideX);
                 centerY = Math.abs(sideY) > that.outerRadius ? that.outerRadius : Math.abs(sideY);
             }
@@ -205,16 +216,13 @@ export class Joystick extends PIXI.Container {
 
             if (sideX > 0 && sideY < 0) {
                 // < 90
-            }
-            else if (sideX < 0 && sideY < 0) {
+            } else if (sideX < 0 && sideY < 0) {
                 // 90 ~ 180
                 angle = 180 - angle;
-            }
-            else if (sideX < 0 && sideY > 0) {
+            } else if (sideX < 0 && sideY > 0) {
                 // 180 ~ 270
                 angle = angle + 180;
-            }
-            else if (sideX > 0 && sideY > 0) {
+            } else if (sideX > 0 && sideY > 0) {
                 // 270 ~ 369
                 angle = 360 - angle;
             }
@@ -224,13 +232,13 @@ export class Joystick extends PIXI.Container {
             direction = that.getDirection(centerPoint);
             that.inner.position.set(centerPoint.x, centerPoint.y);
 
-            that.settings.onChange?.({ angle, direction, power, });
-        };
+            that.settings.onChange?.({angle, direction, power});
+        }
 
         this.on('pointerdown', onDragStart)
             .on('pointerup', onDragEnd)
             .on('pointerupoutside', onDragEnd)
-            .on('pointermove', onDragMove)
+            .on('pointermove', onDragMove);
     }
 
     getPower(centerPoint) {
@@ -240,20 +248,20 @@ export class Joystick extends PIXI.Container {
     }
 
     getDirection(center) {
-        let rad = Math.atan2(center.y, center.x);// [-PI, PI]
+        let rad = Math.atan2(center.y, center.x); // [-PI, PI]
         if ((rad >= -Math.PI / 8 && rad < 0) || (rad >= 0 && rad < Math.PI / 8)) {
             return Direction.RIGHT;
-        } else if (rad >= Math.PI / 8 && rad < 3 * Math.PI / 8) {
+        } else if (rad >= Math.PI / 8 && rad < (3 * Math.PI) / 8) {
             return Direction.BOTTOM_RIGHT;
-        } else if (rad >= 3 * Math.PI / 8 && rad < 5 * Math.PI / 8) {
+        } else if (rad >= (3 * Math.PI) / 8 && rad < (5 * Math.PI) / 8) {
             return Direction.BOTTOM;
-        } else if (rad >= 5 * Math.PI / 8 && rad < 7 * Math.PI / 8) {
+        } else if (rad >= (5 * Math.PI) / 8 && rad < (7 * Math.PI) / 8) {
             return Direction.BOTTOM_LEFT;
-        } else if ((rad >= 7 * Math.PI / 8 && rad < Math.PI) || (rad >= -Math.PI && rad < -7 * Math.PI / 8)) {
+        } else if ((rad >= (7 * Math.PI) / 8 && rad < Math.PI) || (rad >= -Math.PI && rad < (-7 * Math.PI) / 8)) {
             return Direction.LEFT;
-        } else if (rad >= -7 * Math.PI / 8 && rad < -5 * Math.PI / 8) {
+        } else if (rad >= (-7 * Math.PI) / 8 && rad < (-5 * Math.PI) / 8) {
             return Direction.TOP_LEFT;
-        } else if (rad >= -5 * Math.PI / 8 && rad < -3 * Math.PI / 8) {
+        } else if (rad >= (-5 * Math.PI) / 8 && rad < (-3 * Math.PI) / 8) {
             return Direction.TOP;
         } else {
             return Direction.TOP_RIGHT;
@@ -261,20 +269,20 @@ export class Joystick extends PIXI.Container {
     }
 }
 
-function createButton(caption, rad = 60) {
-    const button = new PIXI.Graphics();
-    button.beginFill(0xffffff);
-    button.drawCircle(0, 0, rad);
-    button.alpha = 0.5;
-    button.tint = 0x404040
+// function createButton(caption, rad = 60) {
+//     const button = new PIXI.Graphics();
+//     button.beginFill(0xffffff);
+//     button.drawCircle(0, 0, rad);
+//     button.alpha = 0.5;
+//     button.tint = 0x404040
 
-    const text = new PIXI.Text(caption, { fontName: 'Courier', fontSize: 20 })
-    text.anchor.set(0.5)
-    button.addChild(text)
-    button.interactive = true
+//     const text = new PIXI.Text(caption, { fontName: 'Courier', fontSize: 20 })
+//     text.anchor.set(0.5)
+//     button.addChild(text)
+//     button.interactive = true
 
-    return button
-}
+//     return button
+// }
 
 // bombermine.controller("joystick", function($scope, $rootScope, Game, Keys, gamepad, actions) {
 //
@@ -331,7 +339,7 @@ function createButton(caption, rad = 60) {
 //                 this.button1 = createButton('BOMB', 40)
 //                 this.button1.position.set(80, 60)
 //                 this.button2 = createButton('ACT', 40)
-//                 this.button2.position.set(150, 120)
+//                 this.button2.position.set(150, 900)
 //
 //                 stage.addChild(this.joystick, this.button1, this.button2)
 //
