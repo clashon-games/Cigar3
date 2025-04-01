@@ -363,21 +363,63 @@ export default class {
             this.target_relative.set(Math.cos(radian) * p, Math.sin(radian) * p);
         };
 
-        this.joystick_split = createPixiButton('SPLIT', 40);
+        this.joystick_split = createPixiButton('', 30);
+        const splitSprite = PIXI.Sprite.from('sprites/split-icon _resized.png');
+        splitSprite.width = 80;
+        splitSprite.height = 80;
+        splitSprite.anchor.set(0.5);
+        splitSprite.x = 0;
+        splitSprite.y = 0;
+
+        this.joystick_split.addChild(splitSprite);
+
         this.joystick_split.on('clicked', () => {
             this.core.net.sendSplit();
         });
-        this.joystick_eject = createPixiButton('EJECT', 40);
+        this.joystick_eject = createPixiButton('', 30);
+        const ejectSprite = PIXI.Sprite.from('sprites/eject-icon _resized.png');
+        ejectSprite.width = 80;
+        ejectSprite.height = 80;
+        ejectSprite.anchor.set(0.5);
+        ejectSprite.x = 0;
+        ejectSprite.y = 0;
+
+        this.joystick_eject.addChild(ejectSprite);
+
         this.joystick_eject.on('clicked', () => {
             this.core.net.sendEject();
         });
-        this.joystick_swipe = createPixiButton('🕹️', 30);
+
+        this.joystick_swipe = createPixiButton('', 30);
+        const swipeSprite = PIXI.Sprite.from('sprites/switch-icon _resized.png');
+        swipeSprite.width = 80;
+        swipeSprite.height = 80;
+        swipeSprite.anchor.set(0.5);
+        swipeSprite.x = 0;
+        swipeSprite.y = 0;
+
+        this.joystick_swipe.addChild(swipeSprite);
 
         this.joystick_swipe.on('clicked', () => {
             this.joystick_is_right = !this.joystick_is_right;
             this.joystick_is_right_triggered = true;
         });
-        this.stage.addChild(this.joystick_split, this.joystick_eject, this.joystick_swipe);
+
+        this.quitGame = createPixiButton('', 25);
+        const quitSprite = PIXI.Sprite.from('sprites/exit-icon_resized.png');
+        quitSprite.width = 60;
+        quitSprite.height = 60;
+        quitSprite.anchor.set(0.5);
+        quitSprite.x = 0;
+        quitSprite.y = 0;
+
+        this.quitGame.addChild(quitSprite);
+
+        this.quitGame.on('clicked', () => {
+            this.core.net.onClose();
+        });
+
+        this.stage.addChild(this.joystick_split, this.joystick_eject, this.joystick_swipe, this.quitGame);
     }
 
     checkResize = () => {
@@ -404,10 +446,12 @@ export default class {
     resizeLayout() {
         const {screen} = this.renderer;
         this.joystick?.position.set(!this.joystick_is_right ? screen.width - 80 : 80, screen.height - 75);
-        this.joystick_split?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 145);
-        this.joystick_eject?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 60);
         this.minimapStage?.position.set(screen.width / 2, screen.height - 75);
-        this.joystick_swipe?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 220);
+        this.joystick_eject?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 60);
+        this.joystick_split?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 130);
+        this.joystick_swipe?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 200);
+        this.quitGame?.position.set(!this.joystick_is_right ? screen.width - 60 : 60, screen.height - 180);
+
         this.joystick_is_right_triggered = false;
     }
 }
