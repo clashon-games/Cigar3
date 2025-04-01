@@ -9,8 +9,6 @@ export default class UserInterface {
         this.scoreElement = document.getElementById('score');
         this.pingElement = document.getElementById('ping');
         this.leaderboard = document.getElementById('leaderboard');
-        this.chatField = document.getElementById('chat-field');
-        this.chatContent = document.getElementById('chat-content');
         this.minionControlled = document.getElementById('minion-controlled');
 
         setInterval(() => {
@@ -53,19 +51,7 @@ export default class UserInterface {
         this.leaderboard.insertAdjacentHTML('beforeend', contentStr)
     }
 
-    updateChat() {
-        let contentStr = ""
-        for (const message of this.core.net.messages) {
-            contentStr += `
-            <div class="hud-message-tile">
-                <span class="hud-message-item" style="color: rgb(${message.color.r}, ${message.color.g}, ${message.color.b})">
-                    ${(message.server || message.admin || message.mod) ? (message.server ? "[SERVER]" : message.admin ? "[ADMIN]" : "[MOD]") : ""}${message.name}: <span class="hud-message">${message.content}</span>
-                </span>
-            </div>`
-        }
-        this.chatContent.innerHTML = ""
-        this.chatContent.insertAdjacentHTML('beforeend', contentStr)
-    }
+
 
     onScroll({
         deltaY
@@ -73,7 +59,6 @@ export default class UserInterface {
         this.core.app.camera.w += deltaY * -.001 //event.deltaY * -1 / 1000;
         this.core.app.camera.w = Math.min(Math.max(.05, this.core.app.camera.w), 8)
     }
-
     onKeyDown({
         code
     }) {
@@ -84,7 +69,7 @@ export default class UserInterface {
                 if (!this.ejectInterval) {
                     this.core.net.sendEject();
                     this.ejectInterval = setInterval(() => {
-                        if (this.keysPressed["KeyW"]) this.core.net.sendEject();
+                        if (this.keysPressed['KeyW']) this.core.net.sendEject();
                         else clearInterval(this.ejectInterval);
                     }, 50);
                 }
@@ -95,14 +80,7 @@ export default class UserInterface {
             case "KeyQ":
                 this.core.net.sendMinionSwitch();
                 break;
-            case "Enter":
-                if (document.activeElement === this.chatField) {
-                    const value = this.chatField.value;
-                    if (value !== "") this.core.net.sendChatMessage(value);
-                    this.chatField.blur();
-                    this.chatField.value = "";
-                } else this.chatField.focus();
-                break;
+
             case "KeyE":
                 this.core.net.sendE();
                 break;

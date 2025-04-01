@@ -60,6 +60,18 @@ export default class Network {
         ws.onerror = this.onError
     }
 
+    // For local testing only
+    // connect(addr, authToken) {
+    //     if (this.ws) this.reset();
+    //     const protocols = ['authorization', authToken];
+    //     const ws = (this.ws = new WebSocket('http://localhost:8080/', protocols));
+    //     ws.binaryType = 'arraybuffer';
+    //     ws.onopen = this.onOpen;
+    //     ws.onmessage = this.onMessage;
+    //     ws.onclose = this.onClose;
+    //     ws.onerror = this.onError;
+    // }
+
     reset() {
         if (this.ws) this.ws.close()
         this.ws = null
@@ -74,11 +86,11 @@ export default class Network {
             centerX: 0,
             centerY: 0,
             width: 0,
-            height: 0
-        }
-        clearInterval(this.pingLoop)
-        clearInterval(this.mouseMoveInterval)
-        cancelAnimationFrame(this.core.app.hueShiftingRAF)
+            height: 0,
+        };
+        clearInterval(this.pingLoop);
+        clearInterval(this.mouseMoveInterval);
+        cancelAnimationFrame(this.core.app.hueShiftingRAF);
     }
 
     send(data) {
@@ -222,8 +234,6 @@ export default class Network {
             name,
             content
         });
-        this.core.ui.updateChat()
-        this.core.ui.chatContent.scrollTop = 9000000
     }
 
     onSpectateCamera(reader) {
@@ -341,8 +351,8 @@ export default class Network {
 
     onNodesUpdate(reader) {
         this.core.app.minimapEntity.position.set(
-            ((this.core.app.camera.x + this.border.width / 2) / this.border.width) * 200,
-            ((this.core.app.camera.y + this.border.height / 2) / this.border.height) * 200)
+            ((this.core.app.camera.x + this.border.width / 2) / this.border.width) * 100,
+            ((this.core.app.camera.y + this.border.height / 2) / this.border.height) * 100)
         let cellsByID = this.core.app.cellsByID
 
         // consume records

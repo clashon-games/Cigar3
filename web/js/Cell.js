@@ -60,7 +60,7 @@ export default class Cell {
         const texture = this.core.app.renderer.generateTexture(new PIXI.Text(name, {
             fontSize: 100,
             lineJoin: "round",
-            fontFamily: "Nunito",
+            fontFamily: "Russo One",
             fill: "white",
             stroke: "black",
             strokeThickness: 10
@@ -74,7 +74,7 @@ export default class Cell {
         const mass = Cell.MASS_POOL.shift()
         if (mass) return mass
         else return new PIXI.BitmapText("", {
-            fontName: "Nunito"
+            fontName: "Russo One"
         })
     }
 

@@ -7,7 +7,7 @@ export function createPixiButton(caption, rad = 60) {
     button.alpha = 0.5;
     button.tint = 0x404040;
 
-    const text = new PIXI.Text(caption, {fontName: 'Courier', fontSize: 20});
+    const text = new PIXI.Text(caption, {fontFamily: 'Russo One', fontSize: 20});
     text.anchor.set(0.5);
     button.addChild(text);
     button.interactive = true;
@@ -36,3 +36,4 @@ export function createPixiButton(caption, rad = 60) {
 
     return button;
 }
+

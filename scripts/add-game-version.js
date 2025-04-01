@@ -31,7 +31,7 @@ try {
         // Replace the content inside the `id="game-version"` div
         htmlContent = htmlContent.replace(
             gameVersionRegex,
-            `<div id="game-version" style="position: absolute;top:16px;right:16px">${version}</div>`
+            `<div id="game-version" style="position: absolute;bottom:8px;left:8px; font-size:8px">${version}</div>`
         );
 
         // Write the updated content back to the HTML file

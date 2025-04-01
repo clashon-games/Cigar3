@@ -137,7 +137,7 @@ export default class {
                 square.drawRect(0, 0, sectorSize, sectorSize);
                 square.position.set(col * sectorSize, row * sectorSize);
                 const label = new PIXI.Text(String.fromCharCode(65 + row) + (col + 1), {
-                    fontFamily: 'Arial',
+                    fontFamily: 'Russo One',
                     fontSize: 1024,
                     fill: 0x444444,
                 });
@@ -158,17 +158,17 @@ export default class {
 
     initMinimap() {
         const sprite = (this.minimapEntity = new PIXI.Sprite(PIXI.Texture.WHITE));
-        sprite.width = 10;
-        sprite.height = 10;
-        sprite.anchor.set(0.5);
+        sprite.width = 5;
+        sprite.height = 5;
+        sprite.anchor.set(1);
 
         const miniGraphics = new PIXI.Graphics();
         miniGraphics.beginFill(0x0, 0.4);
-        miniGraphics.drawRoundedRect(0, 0, 200, 200, 20);
+        miniGraphics.drawRoundedRect(0, 0, 100, 100, 10);
         miniGraphics.endFill();
 
         this.minimapStage = new PIXI.Container();
-        this.minimapStage.pivot.set(100, 100);
+        this.minimapStage.pivot.set(50, 50);
         this.minimapStage.addChild(miniGraphics, sprite);
         this.stage.addChild(this.minimapStage);
     }
@@ -215,10 +215,10 @@ export default class {
 
         Cell.SPRITE = new PIXI.Sprite(cellRenderTexture);
 
-        PIXI.BitmapFont.from('Nunito', {
+        PIXI.BitmapFont.from('Russo One', {
             fontSize: 60,
             lineJoin: 'round',
-            fontFamily: 'Nunito',
+            fontFamily: 'Russo One',
             fill: 'white',
             stroke: 'black',
             strokeThickness: 10,
@@ -320,8 +320,8 @@ export default class {
 
         // this is pixi-v6 code
         const loader = new PIXI.Loader();
-        loader.add('joy_outer', 'sprites/joystick.png');
-        loader.add('joy_inner', 'sprites/joystick-handle.png');
+        loader.add('joy_outer', 'sprites/joystick_base_2.png');
+        loader.add('joy_inner', 'sprites/joystick-handler_2.png');
 
         const p = new Promise((resolve, reject) => {
             loader.load((loader, resources) => {
@@ -332,28 +332,12 @@ export default class {
 
         this.joystick = new Joystick({
             outerScale: {x: 1, y: 1},
-            innerScale: {x: 1, y: 1},
+            innerScale: {x: 0.6, y: 0.6},
             outer: new PIXI.Sprite(resources['joy_outer'].texture),
             inner: new PIXI.Sprite(resources['joy_inner'].texture),
         });
         this.joystick.position.set(this.screen.width - 100, this.screen.height - 100);
         this.stage.addChild(this.joystick);
-
-        //             PIXI.Assets.addBundle('joystick', {
-        //                 'joy_outer':'i/pixi/joystick.png',
-        //                 'joy_inner':'i/pixi/joystick-handle.png'
-        //             })
-        //             PIXI.Assets.loadBundle('joystick').then((res) => {
-        //                 this.joystick = new Joystick({
-        //                     outerScale: {x: 0.65, y: 0.65},
-        //                     innerScale: {x: 0.65, y: 0.65},
-        //                     outer: new PIXI.Sprite(res['joy_outer']),
-        //                     inner: new PIXI.Sprite(res['joy_inner']),
-        //                     onChange: this.onJoystickChange,
-        //                     onEnd: () => { this.onJoystickChange({ power: 0, direction: 0}) }
-        //                 })
-        //                 this.button1 = createButton('BOMB', 40)
-        //                 this.button1.position.set(80, 60)
     }
 
     registerMouse() {
@@ -379,21 +363,31 @@ export default class {
             this.target_relative.set(Math.cos(radian) * p, Math.sin(radian) * p);
         };
 
-        this.joystick_split = createPixiButton('SPLIT', 60);
+        this.joystick_split = createPixiButton('SPLIT', 40);
         this.joystick_split.on('clicked', () => {
             this.core.net.sendSplit();
         });
-        this.joystick_eject = createPixiButton('EJECT', 60);
+        this.joystick_eject = createPixiButton('EJECT', 40);
         this.joystick_eject.on('clicked', () => {
             this.core.net.sendEject();
         });
-        this.stage.addChild(this.joystick_split, this.joystick_eject);
+        this.joystick_swipe = createPixiButton('🕹️', 30);
+
+        this.joystick_swipe.on('clicked', () => {
+            this.joystick_is_right = !this.joystick_is_right;
+            this.joystick_is_right_triggered = true;
+        });
+        this.stage.addChild(this.joystick_split, this.joystick_eject, this.joystick_swipe);
     }
 
     checkResize = () => {
         const elem_width = window.innerWidth;
         const elem_height = window.innerHeight;
         const {renderer} = this;
+
+        if (this.joystick_is_right_triggered) {
+            this.resizeLayout();
+        }
 
         if (elem_width > 0 && elem_height > 0) {
             if (
@@ -409,10 +403,12 @@ export default class {
 
     resizeLayout() {
         const {screen} = this.renderer;
-        this.joystick?.position.set(screen.width - 125, screen.height - 125);
-        this.joystick_split?.position.set(70, screen.height - 150);
-        this.joystick_eject?.position.set(200, screen.height - 100);
-        this.minimapStage?.position.set(screen.width / 2, screen.height - 105);
+        this.joystick?.position.set(!this.joystick_is_right ? screen.width - 80 : 80, screen.height - 75);
+        this.joystick_split?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 145);
+        this.joystick_eject?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 60);
+        this.minimapStage?.position.set(screen.width / 2, screen.height - 75);
+        this.joystick_swipe?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 220);
+        this.joystick_is_right_triggered = false;
     }
 }
 

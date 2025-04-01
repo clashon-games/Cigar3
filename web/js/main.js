@@ -36,7 +36,7 @@ class Cigar3 {
         const decoded = decodeJwtToken(this.store.authToken);
         // TODO: to be changed with user name from TG thwn it will be present in token
         if (decoded && decoded.telegram_user_id) {
-            this.store.name = decoded.telegram_user_id;
+            this.store.name = 'Player *' + decoded.telegram_user_id.toString().slice(-4);
         } else {
             this.store.name = 'Unnamed';
             console.error('Invalid or missing telegram_user_id in token');

@@ -11,7 +11,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <title>Cigar3</title>
     <link id="favicon" rel="icon" type="image/png" href="assets/img/favicon.png">
     <link rel="stylesheet" href="./css/main.css">
@@ -39,17 +41,19 @@
         <div class="hud-tile hud-right">
             <div id="leaderboard" class="hud-leaderboard"></div>
         </div>
-        <div class="hud-tile hud-bottom" style = "display:none">
-            <div class="hud-chat">
-                <div id="chat-content" class="hud-chat-content"></div>
-                <input id="chat-field" type="text" placeholder="Chat here!" class="hud-chat-input">
-            </div>
-        </div>
+       
     </div>
    
     <div id="modals-container">
     </div>
-    <div id="game-version" style="position: absolute;top:16px;right:16px">v0.0.3</div>
-    <script src="./js/main.js" type="module"></script>
+    <div id="game-version" style="position: absolute;bottom:8px;left:8px; font-size:8px">v0.0.3</div>
+    <script type="module">
+        document.fonts.ready.then(() => {
+    
+          import('./js/main.js').then(() => {
+           console.log("Game Launched async")
+          });
+        });
+      </script>
 </body>
 </html>
