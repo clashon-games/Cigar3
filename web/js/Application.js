@@ -1,15 +1,18 @@
-import Cell from "./Cell.js"
+import * as PIXI from 'pixi.js';
+import Cell from './Cell.js';
+import {Joystick} from './joystick.js';
+import {createPixiButton} from './pixi-utils.js';
 
 export default class {
     constructor(core) {
-        this.core = core
+        this.core = core;
 
-        this.initRenderer()
-        this.initMinimap()
+        this.initRenderer();
+        this.initMinimap();
 
-        this.cells = []
-        this.cellsByID = new Map()
-        this.ownedCells = []
+        this.cells = [];
+        this.cellsByID = new Map();
+        this.ownedCells = [];
         this.camera = {
             x: 1,
             y: 1,
@@ -19,230 +22,252 @@ export default class {
             target: {
                 x: 1,
                 y: 1,
-                s: 1
-            }
-        }
+                s: 1,
+            },
+        };
 
-        this.loop = this.loop.bind(this)
+        this.target_relative = new PIXI.Point();
+        this.joystick_enable = false;
+        this.registerMouse();
 
-        this.skins = {}
-        this.loop()
+        this.loop = this.loop.bind(this);
+
+        this.skins = {};
+        this.loop();
     }
 
     async loadInfos() {
-        this.skins = await this.fetchSkins()
-        this.servers = await this.fetchServers()
+        this.skins = await this.fetchSkins();
+        this.servers = await this.fetchServers();
+        await this.initJoystick();
+        this.registerJoystick();
+
+        window.setInterval(this.checkResize, 100);
+        this.resizeLayout();
     }
 
     drawBorder() {
-        if (this.borderGraphics) this.borderGraphics.destroy()
+        if (this.borderGraphics) this.borderGraphics.destroy();
 
-        const border = this.core.net.border
+        const border = this.core.net.border;
         this.borderGraphics = new PIXI.Graphics()
-        .lineStyle(50, 0xffffff)
-        .drawRect(-border.width / 2, -border.height / 2, border.width, border.height);
-        this.borderGraphics.visible = this.core.settings.border
+            .lineStyle(50, 0xffffff)
+            .drawRect(-border.width / 2, -border.height / 2, border.width, border.height);
+        this.borderGraphics.visible = this.core.settings.border;
 
-        this.stage.addChild(this.borderGraphics)
+        this.field.addChild(this.borderGraphics);
     }
 
     drawBackground() {
-        if (this.backgroundGraphics) this.backgroundGraphics.destroy()
+        if (this.backgroundGraphics) this.backgroundGraphics.destroy();
 
-        const border = this.core.net.border
+        const border = this.core.net.border;
         this.backgroundGraphics = new PIXI.Graphics()
-        .beginFill(0x222222)
-        .drawRect(-border.width / 2, -border.height / 2, border.width, border.height)
-        .endFill()
-        this.backgroundGraphics.visible = this.core.settings.background
+            .beginFill(0x222222)
+            .drawRect(-border.width / 2, -border.height / 2, border.width, border.height)
+            .endFill();
+        this.backgroundGraphics.visible = this.core.settings.background;
 
-        this.stage.addChild(this.backgroundGraphics)
+        this.field.addChild(this.backgroundGraphics);
     }
 
     drawRainbowBorder() {
-        if (this.rainbowSprite) this.rainbowSprite.destroy()
-        
-        const border = this.core.net.border
-        this.rainbowSprite = new PIXI.Sprite.from('./sprites/rainbow-border.png')
-        this.rainbowSprite.anchor.set(0.5)
-        this.rainbowSprite.width = border.width * 1.043
-        this.rainbowSprite.height = border.height * 1.043
-        this.colorMatrix = new PIXI.filters.ColorMatrixFilter()
-        this.rainbowSprite.filters = [this.colorMatrix] 
-        this.hueDegree = 0
-        this.rainbowSprite.visible = this.core.settings.rainbowBorder
+        if (this.rainbowSprite) this.rainbowSprite.destroy();
 
-        this.stage.addChild(this.rainbowSprite)
-        this.performHueShifting()
+        const border = this.core.net.border;
+        this.rainbowSprite = new PIXI.Sprite.from('./sprites/rainbow-border.png');
+        this.rainbowSprite.anchor.set(0.5);
+        this.rainbowSprite.width = border.width * 1.043;
+        this.rainbowSprite.height = border.height * 1.043;
+        this.colorMatrix = new PIXI.filters.ColorMatrixFilter();
+        this.rainbowSprite.filters = [this.colorMatrix];
+        this.hueDegree = 0;
+        this.rainbowSprite.visible = this.core.settings.rainbowBorder;
+
+        this.field.addChild(this.rainbowSprite);
+        this.performHueShifting();
     }
 
     performHueShifting() {
-        this.hueDegree += 1
-        if (this.hueDegree > 360) this.hueDegree = 0
-        this.colorMatrix.hue(this.hueDegree)
-        this.hueShiftingRAF = requestAnimationFrame(this.performHueShifting.bind(this))
+        this.hueDegree += 1;
+        if (this.hueDegree > 360) this.hueDegree = 0;
+        this.colorMatrix.hue(this.hueDegree);
+        this.hueShiftingRAF = requestAnimationFrame(this.performHueShifting.bind(this));
     }
 
     drawGrid() {
-        if (this.gridSprite) this.gridSprite.destroy()
+        if (this.gridSprite) this.gridSprite.destroy();
 
-        const border = this.core.net.border
-        const g = new PIXI.Graphics()
-        const width = 100
-        const height = 100
-        g.lineStyle(10, 0x333333, 1)
-        g.moveTo(width, 0)
-        g.lineTo(0, 0)
-        g.moveTo(width / 2, height / 2)
-        g.lineTo(width / 2, -height / 2)
-        const texture = this.renderer.generateTexture(g, PIXI.SCALE_MODES.LINEAR, 1, new PIXI.Rectangle(0, 0, width / 2, height / 2))
-        texture.baseTexture.mipmap = true
-        this.gridSprite = new PIXI.TilingSprite(texture, border.width, border.height)
-        this.gridSprite.position.set(-border.width / 2, -border.height / 2)
-        this.gridSprite.visible = this.core.settings.grid
+        const border = this.core.net.border;
+        const g = new PIXI.Graphics();
+        const width = 100;
+        const height = 100;
+        g.lineStyle(10, 0x333333, 1);
+        g.moveTo(width, 0);
+        g.lineTo(0, 0);
+        g.moveTo(width / 2, height / 2);
+        g.lineTo(width / 2, -height / 2);
+        const texture = this.renderer.generateTexture(
+            g,
+            PIXI.SCALE_MODES.LINEAR,
+            1,
+            new PIXI.Rectangle(0, 0, width / 2, height / 2)
+        );
+        texture.baseTexture.mipmap = true;
+        this.gridSprite = new PIXI.TilingSprite(texture, border.width, border.height);
+        this.gridSprite.position.set(-border.width / 2, -border.height / 2);
+        this.gridSprite.visible = this.core.settings.grid;
 
-        this.stage.addChild(this.gridSprite)
+        this.field.addChild(this.gridSprite);
     }
 
     drawSectors() {
-        if (this.sectorContainer) this.sectorContainer.destroy()
+        if (this.sectorContainer) this.sectorContainer.destroy();
 
-        const labels = []
-        const rows = 5
-        const cols = 5
-        const sectorSize = this.core.net.border.width / 5
-        this.sectorContainer = new PIXI.Container()
+        const labels = [];
+        const rows = 5;
+        const cols = 5;
+        const sectorSize = this.core.net.border.width / 5;
+        this.sectorContainer = new PIXI.Container();
         for (let row = 0; row < rows; row++) {
-            labels[row] = []
+            labels[row] = [];
             for (let col = 0; col < cols; col++) {
-                const square = new PIXI.Graphics()
-                square.lineStyle(100, 0x444444)
+                const square = new PIXI.Graphics();
+                square.lineStyle(100, 0x444444);
                 square.drawRect(0, 0, sectorSize, sectorSize);
-                square.position.set(col * sectorSize, row * sectorSize)
+                square.position.set(col * sectorSize, row * sectorSize);
                 const label = new PIXI.Text(String.fromCharCode(65 + row) + (col + 1), {
-                    fontFamily: 'Arial',
+                    fontFamily: 'Russo One',
                     fontSize: 1024,
-                    fill: 0x444444
-                })
+                    fill: 0x444444,
+                });
                 label.position.set(
                     col * sectorSize + (sectorSize - label.width) / 2,
                     row * sectorSize + (sectorSize - label.height) / 2
-                )
-                const sector = new PIXI.Container()
-                sector.addChild(square, label)
-                this.sectorContainer.addChild(sector)
+                );
+                const sector = new PIXI.Container();
+                sector.addChild(square, label);
+                this.sectorContainer.addChild(sector);
             }
         }
-        this.sectorContainer.position.set(-1 * sectorSize * 5 / 2, -1 * sectorSize * 5 / 2)
-        this.sectorContainer.visible = this.core.settings.sectors
+        this.sectorContainer.position.set((-1 * sectorSize * 5) / 2, (-1 * sectorSize * 5) / 2);
+        this.sectorContainer.visible = this.core.settings.sectors;
 
-        this.stage.addChild(this.sectorContainer)
+        this.field.addChild(this.sectorContainer);
     }
 
     initMinimap() {
-        const view = this.minimapView = document.getElementById("minimap-view")
-        this.minimapRenderer = new PIXI.Renderer({ 
-            view,
-            width: 250,
-            height: 250,
-            backgroundAlpha: 0,
-            antialiasing: false
-        })
-        const sprite = this.minimapEntity = new PIXI.Sprite(PIXI.Texture.WHITE)
-        sprite.width = 10
-        sprite.height = 10
-        sprite.anchor.set(.5)
-        const stage = this.minimapStage = new PIXI.Container()
-        stage.addChild(sprite)
+        const sprite = (this.minimapEntity = new PIXI.Sprite(PIXI.Texture.WHITE));
+        sprite.width = 5;
+        sprite.height = 5;
+        sprite.anchor.set(1);
+
+        const miniGraphics = new PIXI.Graphics();
+        miniGraphics.beginFill(0x0, 0.4);
+        miniGraphics.drawRoundedRect(0, 0, 100, 100, 10);
+        miniGraphics.endFill();
+
+        this.minimapStage = new PIXI.Container();
+        this.minimapStage.pivot.set(50, 50);
+        this.minimapStage.addChild(miniGraphics, sprite);
+        this.stage.addChild(this.minimapStage);
     }
 
     initRenderer() {
-        const view = this.view = document.getElementById("view")
-        this.renderer = new PIXI.Renderer({ 
+        const view = (this.view = document.getElementById('view'));
+        this.renderer = new PIXI.Renderer({
             view,
             width: innerWidth,
             height: innerHeight,
             antialiasing: false,
-            powerPreference: 'high-performance'
-        })
-        this.stage = new PIXI.Container()
-        this.stage.sortableChildren = true
+            powerPreference: 'high-performance',
+        });
+        this.stage = new PIXI.Container();
 
-        const circle = new PIXI.Graphics()
-        circle.beginFill(0xffffff)
-        circle.drawCircle(256, 256, 256)
+        this.field = new PIXI.Container();
+        this.field.sortableChildren = true;
+
+        this.stage.addChild(this.field);
+
+        this.stage.interactive = true;
+        this.stage.hitArea = this.renderer.screen;
+
+        const circle = new PIXI.Graphics();
+        circle.beginFill(0xffffff);
+        circle.drawCircle(256, 256, 256);
         circle.endFill();
 
         const star = new PIXI.Graphics()
-        .beginFill(0xffffff)
-        .lineStyle(10, 0x777777, 1)
-        .drawPolygon(new Star(256, 256, 30, 256, 220, 0))
-        .endFill();
+            .beginFill(0xffffff)
+            .lineStyle(10, 0x777777, 1)
+            .drawPolygon(new Star(256, 256, 30, 256, 220, 0))
+            .endFill();
 
-        const cellRenderTexture = PIXI.RenderTexture.create({ width: 512, height: 512 })
-        this.renderer.render(circle, { renderTexture: cellRenderTexture })
-        cellRenderTexture.baseTexture.mipmap = true
+        const cellRenderTexture = PIXI.RenderTexture.create({width: 512, height: 512});
+        this.renderer.render(circle, {renderTexture: cellRenderTexture});
+        cellRenderTexture.baseTexture.mipmap = true;
 
-        const virusRenderTexture = PIXI.RenderTexture.create({ width: 512, height: 512 })
-        this.renderer.render(star, { renderTexture: virusRenderTexture })
-        virusRenderTexture.baseTexture.mipmap = true
+        const virusRenderTexture = PIXI.RenderTexture.create({width: 512, height: 512});
+        this.renderer.render(star, {renderTexture: virusRenderTexture});
+        virusRenderTexture.baseTexture.mipmap = true;
 
-        this.textures = { cell: cellRenderTexture, virus: virusRenderTexture }
+        this.textures = {cell: cellRenderTexture, virus: virusRenderTexture};
 
-        Cell.SPRITE = new PIXI.Sprite(cellRenderTexture)
+        Cell.SPRITE = new PIXI.Sprite(cellRenderTexture);
 
-        PIXI.BitmapFont.from("Nunito", {
+        PIXI.BitmapFont.from('Russo One', {
             fontSize: 60,
-            lineJoin: "round",
-            fontFamily: "Nunito",
-            fill: "white",
-            stroke: "black",
-            strokeThickness: 10
-        })
+            lineJoin: 'round',
+            fontFamily: 'Russo One',
+            fill: 'white',
+            stroke: 'black',
+            strokeThickness: 10,
+        });
     }
 
     fetchServers() {
         return new Promise((resolve, reject) => {
             fetch('./servers.json')
-            .then(response => {
-                if (!response.ok) reject()
-                return response.json()
-            })
-            .then(servers => {
-                resolve(servers)
-            })
-        })
+                .then((response) => {
+                    if (!response.ok) reject();
+                    return response.json();
+                })
+                .then((servers) => {
+                    resolve(servers);
+                });
+        });
     }
 
     fetchSkins() {
         return new Promise((resolve, reject) => {
             fetch('./skins.json')
-            .then(response => {
-                if (!response.ok) reject()
-                return response.json()
-            })
-            .then(skins => {
-                resolve(skins)
-            })
-        })
+                .then((response) => {
+                    if (!response.ok) reject();
+                    return response.json();
+                })
+                .then((skins) => {
+                    resolve(skins);
+                });
+        });
     }
 
     loop() {
-        this.now = Date.now()
-        for (const cell of this.cells.slice(0)) { cell.update(this.now) }
-        this.updateCamera()
+        this.now = Date.now();
+        for (const cell of this.cells.slice(0)) {
+            cell.update(this.now);
+        }
+        this.updateCamera();
 
-        this.renderer.render(this.stage)
-        this.minimapRenderer.render(this.minimapStage)
+        this.renderer.render(this.stage);
 
-        requestAnimationFrame(this.loop)
+        requestAnimationFrame(this.loop);
     }
 
     clear() {
-        this.stage.removeChildren()
-        this.cells = []
-        this.cellsByID = new Map()
-        this.ownedCells = []
+        this.field.removeChildren();
+        this.cells = [];
+        this.cellsByID = new Map();
+        this.ownedCells = [];
     }
 
     updateCamera() {
@@ -252,13 +277,13 @@ export default class {
             if (cell) cells.push(cell);
         }
 
-        let score = 0
+        let score = 0;
         if (cells.length > 0) {
-            let x = 0
-            let y = 0
-            let s = 0
+            let x = 0;
+            let y = 0;
+            let s = 0;
             for (const cell of cells) {
-                score += ~~(cell.r * cell.r / 100);
+                score += ~~((cell.r * cell.r) / 100);
                 x += cell.x;
                 y += cell.y;
                 s += cell.r;
@@ -267,40 +292,186 @@ export default class {
             this.camera.target.y = y / cells.length;
         }
 
-        this.camera.x += (this.camera.target.x - this.camera.x) / 7
-        this.camera.y += (this.camera.target.y - this.camera.y) / 7
+        this.camera.x += (this.camera.target.x - this.camera.x) / 7;
+        this.camera.y += (this.camera.target.y - this.camera.y) / 7;
         this.camera.target.s = 1;
         this.camera.target.s *= this.camera.w / 2;
 
         this.camera.s += (this.camera.target.s - this.camera.s) / 20;
 
-        this.stage.pivot.set(this.camera.x, this.camera.y)
-        this.stage.scale.set(this.camera.s)
-        this.stage.position.set(innerWidth / 2, innerHeight / 2)
+        this.field.pivot.set(this.camera.x, this.camera.y);
+        this.field.scale.set(this.camera.s);
+        this.field.position.set(innerWidth / 2, innerHeight / 2);
 
-        this.camera.score = score
+        this.camera.score = score;
+    }
+
+    get screen() {
+        return this.renderer.screen;
+    }
+
+    async initJoystick() {
+        //TODO: for pixi-v7 use bundle!
+        // PIXI.Assets.addBundle('joystick', {
+        //     'joy_outer':'sprites/joystick.png',
+        //     'joy_inner':'sprites/joystick-handle.png'
+        // })
+        // const resources = await PIXI.Assets.loadBundle('joystick')
+
+        // this is pixi-v6 code
+        const loader = new PIXI.Loader();
+        loader.add('joy_outer', 'sprites/joystick_base_2.png');
+        loader.add('joy_inner', 'sprites/joystick-handler_2.png');
+
+        const p = new Promise((resolve, reject) => {
+            loader.load((loader, resources) => {
+                resolve(resources);
+            });
+        });
+        const resources = await p;
+
+        this.joystick = new Joystick({
+            outerScale: {x: 1, y: 1},
+            innerScale: {x: 0.6, y: 0.6},
+            outer: new PIXI.Sprite(resources['joy_outer'].texture),
+            inner: new PIXI.Sprite(resources['joy_inner'].texture),
+        });
+        this.joystick.position.set(this.screen.width - 100, this.screen.height - 100);
+        this.stage.addChild(this.joystick);
+    }
+
+    registerMouse() {
+        this.stage.on('mousemove', (event) => {
+            if (!this.joystick_enable) {
+                this.target_relative.x = (event.data.global.x - this.screen.width / 2) / this.camera.s;
+                this.target_relative.y = (event.data.global.y - this.screen.height / 2) / this.camera.s;
+            }
+        });
+    }
+
+    registerJoystick() {
+        const {joystick} = this;
+        joystick.settings.onStart = () => {
+            this.joystick_enable = true;
+        };
+        joystick.settings.onEnd = () => {
+            this.joystick_enable = false;
+        };
+        joystick.settings.onChange = ({angle, direction, power}) => {
+            const p = (power * 100) / this.camera.s;
+            const radian = (-angle * Math.PI) / 180.0;
+            this.target_relative.set(Math.cos(radian) * p, Math.sin(radian) * p);
+        };
+
+        this.joystick_split = createPixiButton('', 30);
+        const splitSprite = PIXI.Sprite.from('sprites/split-icon _resized.png');
+        splitSprite.width = 80;
+        splitSprite.height = 80;
+        splitSprite.anchor.set(0.5);
+        splitSprite.x = 0;
+        splitSprite.y = 0;
+
+        this.joystick_split.addChild(splitSprite);
+
+        this.joystick_split.on('clicked', () => {
+            this.core.net.sendSplit();
+        });
+        this.joystick_eject = createPixiButton('', 30);
+        const ejectSprite = PIXI.Sprite.from('sprites/eject-icon _resized.png');
+        ejectSprite.width = 80;
+        ejectSprite.height = 80;
+        ejectSprite.anchor.set(0.5);
+        ejectSprite.x = 0;
+        ejectSprite.y = 0;
+
+        this.joystick_eject.addChild(ejectSprite);
+
+        this.joystick_eject.on('clicked', () => {
+            this.core.net.sendEject();
+        });
+
+        this.joystick_swipe = createPixiButton('', 30);
+        const swipeSprite = PIXI.Sprite.from('sprites/switch-icon _resized.png');
+        swipeSprite.width = 80;
+        swipeSprite.height = 80;
+        swipeSprite.anchor.set(0.5);
+        swipeSprite.x = 0;
+        swipeSprite.y = 0;
+
+        this.joystick_swipe.addChild(swipeSprite);
+
+        this.joystick_swipe.on('clicked', () => {
+            this.joystick_is_right = !this.joystick_is_right;
+            this.joystick_is_right_triggered = true;
+        });
+
+        this.quitGame = createPixiButton('', 25);
+        const quitSprite = PIXI.Sprite.from('sprites/exit-icon_resized.png');
+        quitSprite.width = 60;
+        quitSprite.height = 60;
+        quitSprite.anchor.set(0.5);
+        quitSprite.x = 0;
+        quitSprite.y = 0;
+
+        this.quitGame.addChild(quitSprite);
+
+        this.quitGame.on('clicked', () => {
+            this.core.net.onClose();
+        });
+
+        this.stage.addChild(this.joystick_split, this.joystick_eject, this.joystick_swipe, this.quitGame);
+    }
+
+    checkResize = () => {
+        const elem_width = window.innerWidth;
+        const elem_height = window.innerHeight;
+        const {renderer} = this;
+
+        if (this.joystick_is_right_triggered) {
+            this.resizeLayout();
+        }
+
+        if (elem_width > 0 && elem_height > 0) {
+            if (
+                Math.abs(elem_width - renderer.screen.width) > 1 ||
+                Math.abs(elem_height - renderer.screen.height) > 1
+            ) {
+                renderer.resize(elem_width, elem_height);
+                // use event instead
+                this.resizeLayout();
+            }
+        }
+    };
+
+    resizeLayout() {
+        const {screen} = this.renderer;
+        this.joystick?.position.set(!this.joystick_is_right ? screen.width - 80 : 80, screen.height - 75);
+        this.minimapStage?.position.set(screen.width / 2, screen.height - 75);
+        this.joystick_eject?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 60);
+        this.joystick_split?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 130);
+        this.joystick_swipe?.position.set(!this.joystick_is_right ? 60 : screen.width - 60, screen.height - 200);
+        this.quitGame?.position.set(!this.joystick_is_right ? screen.width - 60 : 60, screen.height - 180);
+
+        this.joystick_is_right_triggered = false;
     }
 }
 
 class Star extends PIXI.Polygon {
     constructor(x, y, points, radius, innerRadius, rotation = 0) {
-        innerRadius = innerRadius || radius / 2
+        innerRadius = innerRadius || radius / 2;
 
-        const startAngle = (-1 * Math.PI / 2) + rotation
-        const len = points * 2
-        const delta = PIXI.PI_2 / len
-        const polygon = []
+        const startAngle = (-1 * Math.PI) / 2 + rotation;
+        const len = points * 2;
+        const delta = PIXI.PI_2 / len;
+        const polygon = [];
 
         for (let i = 0; i < len; i++) {
-            const r = i % 2 ? innerRadius : radius
-            const angle = (i * delta) + startAngle
+            const r = i % 2 ? innerRadius : radius;
+            const angle = i * delta + startAngle;
 
-            polygon.push(
-                x + (r * Math.cos(angle)),
-                y + (r * Math.sin(angle))
-            );
+            polygon.push(x + r * Math.cos(angle), y + r * Math.sin(angle));
         }
 
-        super(polygon)
+        super(polygon);
     }
 }

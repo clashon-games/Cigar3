@@ -1,3 +1,6 @@
+import { getMesh } from "./Skins.js"
+import * as PIXI from 'pixi.js'
+
 export default class Cell {
     static NAME_CACHE = new Map()
     static SKIN_CACHE = new Object()
@@ -57,7 +60,7 @@ export default class Cell {
         const texture = this.core.app.renderer.generateTexture(new PIXI.Text(name, {
             fontSize: 100,
             lineJoin: "round",
-            fontFamily: "Nunito",
+            fontFamily: "Russo One",
             fill: "white",
             stroke: "black",
             strokeThickness: 10
@@ -71,7 +74,7 @@ export default class Cell {
         const mass = Cell.MASS_POOL.shift()
         if (mass) return mass
         else return new PIXI.BitmapText("", {
-            fontName: "Nunito"
+            fontName: "Russo One"
         })
     }
 
@@ -143,8 +146,7 @@ export default class Cell {
     }
 
     _setSkin(value) {
-        this.sprite.texture = this._getSkinTexture(value)
-        this.sprite.tint = 0xffffff
+        this.sprite.addChild(getMesh(value))
     }
 
     update(time) {
@@ -152,9 +154,9 @@ export default class Cell {
 
         if (this.hasChanged) {
             this.color = this.color
+            this.skin = this.skin
             this.mass = this.mass
             this.name = this.name
-            this.skin = this.skin
             this.hasChanged = false
         }
 
